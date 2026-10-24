@@ -69,8 +69,9 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
   <section>
     <h2>المصادر (روابط RSS)</h2>
     <div class="acts" id="srcs"></div>
-    <label for="gn">تتبّع خبر معيّن (مثل: كوريا الشمالية)</label>
-    <div class="row"><input type="text" id="gn" placeholder="كلمة أو عبارة للبحث في الأخبار"><button class="btn p" id="gnadd" type="button">تتبّع</button></div>
+    <label for="gn">تتبّع خبر معيّن (مثل: السعودية)</label>
+    <div class="row"><input type="text" id="gn" placeholder="مثل: السعودية"><button class="btn p" id="gnadd" type="button">تتبّع</button></div>
+    <div class="res" id="gnres" aria-live="polite"></div>
     <p class="note">التتبّع يبحث في أخبار Google News من مصادر كثيرة، ويرسل أحدث 3 نتائج دون المرور بفلتر المواضيع.</p>
     <div id="tracks"></div>
     <label for="fd">روابط المصادر (بدون التتبّع)</label>
@@ -201,7 +202,8 @@ var PRESETS=[
 {name:"آسيا",alias:["اسيا"],kw:"=آسيا،الصين،بكين،اليابان،طوكيو،=الهند،نيودلهي،باكستان،اسلام اباد،افغانستان،كابول،كوريا،سيول،بيونغ يانغ،اندونيسيا،ماليزيا،سنغافورة،تايلاند،فيتنام،الفلبين،بنغلاديش،تايوان،كازاخستان"},
 {name:"أفريقيا",alias:["افريقيا"],kw:"افريقيا،الاتحاد الافريقي،نيجيريا،اثيوبيا،اديس ابابا،كينيا،نيروبي،غانا،السنغال،اوغندا،تنزانيا،الصومال،جيبوتي،اريتريا،زيمبابوي،انغولا،الكونغو،=تشاد،النيجر،الجابون،الكاميرون،موزمبيق،مدغشقر"},
 {name:"الأمريكتان",alias:["امريكا"],kw:"امريكا،الولايات المتحدة،واشنطن،نيويورك،البيت الابيض،كندا،اوتاوا،المكسيك،البرازيل،الارجنتين،تشيلي،كولومبيا،فنزويلا،كوبا،=بيرو،الاكوادور،بنما"},
-{name:"الذكاء الاصطناعي",alias:["ذكاء اصطناعي","ai"],kw:"الذكاء الاصطناعي،ذكاء اصطناعي،الذكاء الاصطناعي التوليدي،=AI،شات جي بي تي،chatgpt،openai،اوبن ايه اي،جيميني،gemini،anthropic،انثروبيك،ديب سيك،deepseek،غروك،grok،نموذج لغوي،نماذج لغوية،التعلم الالي،تعلم الالة،روبوت،روبوتات،انفيديا،nvidia،سام التمان"}
+{name:"الذكاء الاصطناعي",alias:["ذكاء اصطناعي","ai"],kw:"الذكاء الاصطناعي،ذكاء اصطناعي،الذكاء الاصطناعي التوليدي،=AI،شات جي بي تي،chatgpt،openai،اوبن ايه اي،جيميني،gemini،anthropic،انثروبيك،ديب سيك،deepseek،غروك،grok،نموذج لغوي،نماذج لغوية،التعلم الالي،تعلم الالة،روبوت،روبوتات،انفيديا،nvidia،سام التمان"},
+{name:"الرياضة",alias:["رياضه","الرياضه"],kw:"الرياضة،رياضي،كرة القدم،كرة السلة،كرة اليد،كرة الطائرة،التنس،مباراة،مباريات،لاعب،بطولة،الدوري،دوري ابطال،كاس العالم،كاس اسيا،المنتخب،الاولمبي،اولمبياد،فيفا،fifa،nba،ufc،فورمولا،الملاكمة،ملعب،رونالدو،ميسي،مبابي،هالاند،ريال مدريد،برشلونة،ليفربول،مانشستر،دوري روشن،الدوري السعودي"}
 ];
 function applyPreset(p){
   var names=[p.name].concat(p.alias||[]).map(norm),key=null;
@@ -231,7 +233,7 @@ function drawTracks(){
   var b=$("tracks");b.textContent="";
   if(!S.track.length){b.appendChild(el("p","note","لا توجد أخبار متتبّعة بعد."));return}
   S.track.forEach(function(q){
-    var c=el("div","chip");c.appendChild(el("span",null,q));
+    var c=el("div","chip");c.appendChild(el("span",null,q+"  ✓ مفعّل"));
     var d=el("button","btn d","حذف");d.type="button";d.setAttribute("aria-label","حذف تتبّع "+q);
     d.onclick=function(){S.track=S.track.filter(function(x){return x!==q});drawTracks();update()};
     c.appendChild(d);b.appendChild(c);
@@ -247,10 +249,13 @@ SRC.forEach(function(s){
   $("srcs").appendChild(b);
 });
 $("gnadd").onclick=function(){
-  var q=$("gn").value.trim();if(!q){$("gn").focus();return}
-  if(S.track.indexOf(q)<0)S.track.push(q);drawTracks();update();
+  var q=$("gn").value.trim(),r=$("gnres");if(!q){$("gn").focus();return}
   $("gn").value="";
+  if(S.track.indexOf(q)>-1){r.className="res n";r.textContent="«"+q+"» مُتتبَّع بالفعل";return}
+  S.track.push(q);drawTracks();update();
+  r.className="res y";r.textContent="تم تفعيل التتبّع لـ «"+q+"» ✓ اضغط «حفظ في GitHub الآن» ليبدأ البوت بإرسال أخباره";
 };
+$("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").click()}};
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
 async function ghSave(){
