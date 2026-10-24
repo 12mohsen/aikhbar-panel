@@ -47,7 +47,7 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 7</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 8</p></header>
 
 <div>
   <section>
@@ -60,6 +60,18 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
     <h2>قوائم جاهزة</h2>
     <div class="acts" id="presets"></div>
     <p class="note">كل زر يضيف أسماء الدول والعواصم إلى موضوع بنفس الاسم (أو ينشئه) ويفعّله. الكلمة التي تبدأ بعلامة = تُطابَق ككلمة كاملة لتفادي الخلط، مثل «مصر» و«مصرف».</p>
+  </section>
+  <section>
+    <h2>شكل الرسالة في القناة</h2>
+    <label for="stm">النمط</label>
+    <select id="stm" style="width:100%;font:inherit;padding:.45rem .6rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px">
+      <option value="short">مختصر: عنوان + المصدر + توقيع القناة (مثل القنوات الإخبارية)</option>
+      <option value="full">كامل: عنوان + ملخص + رابط + وسوم</option>
+    </select>
+    <label for="sts">توقيع القناة في آخر كل خبر</label>
+    <input type="text" id="sts" dir="ltr" placeholder="@newsMO1">
+    <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="stso"> إظهار سطر «المصدر» برابط الخبر الأصلي</label>
+    <p class="note">في النمط المختصر تظهر كلمة 🔴 عاجل تلقائياً إذا احتوى العنوان كلمات مثل: عاجل، انفجار، هجوم، قصف، اغتيال، زلزال.</p>
   </section>
   <section>
     <h2>كلمات تُستبعد</h2>
@@ -134,6 +146,7 @@ try{S=JSON.parse(localStorage.getItem("cfg"))}catch(e){}
 var HAD_LOCAL=!!(S&&S.topics&&S.feeds);
 if(!S||!S.topics||!S.feeds)S=JSON.parse(JSON.stringify(DEF));
 if(!S.track)S.track=[];
+if(!S.style)S.style={mode:"short",signature:"@newsMO1",show_source:true};
 S.feeds=S.feeds.filter(function(u){
   var m=u.match(/news\.google\.com\/rss\/search\?q=([^&]*)/);
   if(!m)return true;
@@ -180,7 +193,7 @@ function drawTopics(){
   });
 }
 function cfg(){
-  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max};
+  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,style:S.style};
 }
 function update(){
   save();$("json").value=JSON.stringify(cfg(),null,2);runTest();
@@ -226,7 +239,12 @@ var SRC=[
 ["فرانس 24","https://www.france24.com/ar/rss"],
 ["الشرق الأوسط","https://aawsat.com/feed"],
 ["القدس العربي","https://www.alquds.co.uk/feed/"],
-["RT عربي (روسي رسمي)","http://arabic.rt.com/rss/"]
+["RT عربي (روسي رسمي)","http://arabic.rt.com/rss/"],
+["Google أبرز الأخبار","https://news.google.com/rss?hl=ar&gl=SA&ceid=SA:ar"],
+["Google العالم","https://news.google.com/rss/headlines/section/topic/WORLD?hl=ar&gl=SA&ceid=SA:ar"],
+["Google الأعمال","https://news.google.com/rss/headlines/section/topic/BUSINESS?hl=ar&gl=SA&ceid=SA:ar"],
+["Google التقنية","https://news.google.com/rss/headlines/section/topic/TECHNOLOGY?hl=ar&gl=SA&ceid=SA:ar"],
+["Google الرياضة","https://news.google.com/rss/headlines/section/topic/SPORTS?hl=ar&gl=SA&ceid=SA:ar"]
 ];
 function trackUrl(q){return "https://news.google.com/rss/search?q="+encodeURIComponent(q).replace(/%20/g,"+")+"+when:1d&hl=ar&gl=SA&ceid=SA:ar"}
 function drawTracks(){
@@ -286,6 +304,10 @@ async function ghSave(){
     markSynced();ghStatus(msg+" ✓","y");
   }catch(e){ghStatus(e.message||"حدث خطأ في الاتصال","n")}
 }
+function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false}
+$("stm").onchange=function(){S.style.mode=$("stm").value;update()};
+$("sts").oninput=function(){S.style.signature=$("sts").value.trim();update()};
+$("stso").onchange=function(){S.style.show_source=$("stso").checked;update()};
 function cfgStr(){return JSON.stringify(cfg())}
 function markSynced(){try{localStorage.setItem("synced",cfgStr())}catch(e){}}
 function isDirty(){try{var sy=localStorage.getItem("synced");return sy===null||sy!==cfgStr()}catch(e){return false}}
@@ -300,6 +322,7 @@ async function ghLoad(silent){
     var c=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,function(ch){return ch.charCodeAt(0)})));
     S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;
     S.track=[];S.feeds=[];
+    if(c.style)S.style=c.style;syncStyleUI();
     (c.feeds||[]).forEach(function(u){
       var m=u.match(/news\.google\.com\/rss\/search\?q=([^&]*)/);
       if(m){try{var q=decodeURIComponent(m[1].replace(/\+/g," ")).replace(/\s*when:\S+/,"").trim();if(q&&S.track.indexOf(q)<0)S.track.push(q)}catch(e){}}
@@ -335,7 +358,7 @@ $("copy").onclick=function(){
   catch(e){ta.select();done(false)}
 };
 $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;
-drawTracks();drawTopics();update();
+syncStyleUI();drawTracks();drawTopics();update();
 if(!HAD_LOCAL||!isDirty())ghLoad(true);
 else ghStatus("لديك تعديلات غير محفوظة في هذا المتصفح. اضغط «حفظ في GitHub الآن» لاعتمادها، أو «تحميل الإعدادات من GitHub» لاستبدالها بما في المستودع.","n");
 </script>
