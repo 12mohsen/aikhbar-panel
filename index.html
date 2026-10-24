@@ -47,7 +47,7 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 6</p></header>
 
 <div>
   <section>
@@ -283,9 +283,12 @@ async function ghSave(){
       var d=await fetch(api+"/actions/workflows/main.yml/dispatches",{method:"POST",headers:h,body:JSON.stringify({ref:br})});
       msg+=d.ok?" وتم تشغيل البوت":" (تعذّر تشغيل البوت تلقائياً: "+d.status+")";
     }
-    ghStatus(msg+" ✓","y");
+    markSynced();ghStatus(msg+" ✓","y");
   }catch(e){ghStatus(e.message||"حدث خطأ في الاتصال","n")}
 }
+function cfgStr(){return JSON.stringify(cfg())}
+function markSynced(){try{localStorage.setItem("synced",cfgStr())}catch(e){}}
+function isDirty(){try{var sy=localStorage.getItem("synced");return sy===null||sy!==cfgStr()}catch(e){return false}}
 async function ghLoad(silent){
   var repo=$("ghrepo").value.trim(),br=$("ghbr").value.trim()||"main";
   try{
@@ -303,8 +306,8 @@ async function ghLoad(silent){
       else S.feeds.push(u);
     });
     $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;
-    drawTracks();drawTopics();update();
-    if(!silent)ghStatus("تم تحميل الإعدادات من GitHub ✓","y");
+    drawTracks();drawTopics();update();markSynced();
+    ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
   }catch(e){if(!silent)ghStatus(e.message||"تعذّر الاتصال","n")}
 }
 $("ghload").onclick=function(){ghLoad(false)};
@@ -330,7 +333,8 @@ $("copy").onclick=function(){
 };
 $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;
 drawTracks();drawTopics();update();
-if(!HAD_LOCAL)ghLoad(true);
+if(!HAD_LOCAL||!isDirty())ghLoad(true);
+else ghStatus("لديك تعديلات غير محفوظة في هذا المتصفح. اضغط «حفظ في GitHub الآن» لاعتمادها، أو «تحميل الإعدادات من GitHub» لاستبدالها بما في المستودع.","n");
 </script>
 </body>
 </html>
