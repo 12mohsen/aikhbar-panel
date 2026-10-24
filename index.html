@@ -47,7 +47,7 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 8</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 9</p></header>
 
 <div>
   <section>
@@ -71,6 +71,10 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
     <label for="sts">توقيع القناة في آخر كل خبر</label>
     <input type="text" id="sts" dir="ltr" placeholder="@newsMO1">
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="stso"> إظهار سطر «المصدر» برابط الخبر الأصلي</label>
+    <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sth"> إضافة هاشتاجات تلقائياً لكل خبر</label>
+    <label for="sthf">هاشتاجات ثابتة تُضاف لكل خبر</label>
+    <input type="text" id="sthf" placeholder="#أخبار، #الأخبار_العاجلة">
+    <p class="note">يضيف البوت أيضاً هاشتاج الموضوع (مثل #اقتصاد) والكلمات التي طابقت الخبر (مثل #السعودية) وكلمة التتبّع، بحد أقصى 6 هاشتاجات.</p>
     <p class="note">في النمط المختصر تظهر كلمة 🔴 عاجل تلقائياً إذا احتوى العنوان كلمات مثل: عاجل، انفجار، هجوم، قصف، اغتيال، زلزال.</p>
   </section>
   <section>
@@ -147,6 +151,7 @@ var HAD_LOCAL=!!(S&&S.topics&&S.feeds);
 if(!S||!S.topics||!S.feeds)S=JSON.parse(JSON.stringify(DEF));
 if(!S.track)S.track=[];
 if(!S.style)S.style={mode:"short",signature:"@newsMO1",show_source:true};
+S.style=Object.assign({auto_hashtags:true,hashtags:["#أخبار"],max_tags:6},S.style);
 S.feeds=S.feeds.filter(function(u){
   var m=u.match(/news\.google\.com\/rss\/search\?q=([^&]*)/);
   if(!m)return true;
@@ -304,10 +309,12 @@ async function ghSave(){
     markSynced();ghStatus(msg+" ✓","y");
   }catch(e){ghStatus(e.message||"حدث خطأ في الاتصال","n")}
 }
-function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false}
+function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false;$("sth").checked=S.style.auto_hashtags!==false;$("sthf").value=(S.style.hashtags||[]).join("، ")}
 $("stm").onchange=function(){S.style.mode=$("stm").value;update()};
 $("sts").oninput=function(){S.style.signature=$("sts").value.trim();update()};
 $("stso").onchange=function(){S.style.show_source=$("stso").checked;update()};
+$("sth").onchange=function(){S.style.auto_hashtags=$("sth").checked;update()};
+$("sthf").oninput=function(){S.style.hashtags=parse($("sthf").value).map(function(x){return x.charAt(0)==="#"?x:"#"+x});update()};
 function cfgStr(){return JSON.stringify(cfg())}
 function markSynced(){try{localStorage.setItem("synced",cfgStr())}catch(e){}}
 function isDirty(){try{var sy=localStorage.getItem("synced");return sy===null||sy!==cfgStr()}catch(e){return false}}
@@ -322,7 +329,7 @@ async function ghLoad(silent){
     var c=JSON.parse(new TextDecoder().decode(Uint8Array.from(bin,function(ch){return ch.charCodeAt(0)})));
     S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;
     S.track=[];S.feeds=[];
-    if(c.style)S.style=c.style;syncStyleUI();
+    if(c.style)S.style=Object.assign({auto_hashtags:true,hashtags:["#أخبار"],max_tags:6},c.style);syncStyleUI();
     (c.feeds||[]).forEach(function(u){
       var m=u.match(/news\.google\.com\/rss\/search\?q=([^&]*)/);
       if(m){try{var q=decodeURIComponent(m[1].replace(/\+/g," ")).replace(/\s*when:\S+/,"").trim();if(q&&S.track.indexOf(q)<0)S.track.push(q)}catch(e){}}
