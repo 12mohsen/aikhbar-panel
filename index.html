@@ -47,7 +47,7 @@ ol{margin:.2rem 0 0;padding-inline-start:1.2rem;font-size:.92rem}
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 6</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 7</p></header>
 
 <div>
   <section>
@@ -310,7 +310,10 @@ async function ghLoad(silent){
     ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
   }catch(e){if(!silent)ghStatus(e.message||"تعذّر الاتصال","n")}
 }
-$("ghload").onclick=function(){ghLoad(false)};
+$("ghload").onclick=function(){
+  if(isDirty()&&!confirm("لديك تعديلات غير محفوظة، وستُستبدل بما هو محفوظ في GitHub. هل تريد المتابعة؟\n(للاحتفاظ بتعديلاتك اضغط إلغاء ثم «حفظ في GitHub الآن»)"))return;
+  ghLoad(false);
+};
 $("ghsave").onclick=ghSave;
 try{
   if(localStorage.getItem("gh_repo"))$("ghrepo").value=localStorage.getItem("gh_repo");
