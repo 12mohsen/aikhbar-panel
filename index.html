@@ -10,9 +10,9 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=Noto+Kufi+Arabic:wght@600;800&display=swap" rel="stylesheet">
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
-  --bg:#eef1f4;--surface:#fff;--ink:#14213d;--muted:#5b667a;--line:#d5dbe3;--tg:#1b86bd;--ok:#0b7a5e;--bad:#c0392b}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--surface:#162033;--ink:#e8edf5;--muted:#9aa6bb;--line:#26324a;--tg:#4cb8ea;--ok:#3ccf9f;--bad:#ff7b6b}}
-:root[data-theme="dark"]{--bg:#0e1522;--surface:#162033;--ink:#e8edf5;--muted:#9aa6bb;--line:#26324a;--tg:#4cb8ea;--ok:#3ccf9f;--bad:#ff7b6b}
+  --bg:#eef1f4;--surface:#fff;--ink:#14213d;--muted:#5b667a;--line:#d5dbe3;--tg:#1b86bd;--ok:#0b7a5e;--bad:#c0392b;--hover:#dde4ed;--ring:rgba(27,134,189,.35)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1522;--surface:#162033;--ink:#e8edf5;--muted:#9aa6bb;--line:#26324a;--tg:#4cb8ea;--ok:#3ccf9f;--bad:#ff7b6b;--hover:#1e2a40;--ring:rgba(76,184,234,.4)}}
+:root[data-theme="dark"]{--bg:#0e1522;--surface:#162033;--ink:#e8edf5;--muted:#9aa6bb;--line:#26324a;--tg:#4cb8ea;--ok:#3ccf9f;--bad:#ff7b6b;--hover:#1e2a40;--ring:rgba(76,184,234,.4)}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *,*::before,*::after{box-sizing:inherit}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.8 "IBM Plex Sans Arabic",Tahoma,sans-serif}
@@ -30,8 +30,19 @@ textarea{min-height:76px;resize:vertical}
 .topic.off{opacity:.55;border-inline-start-color:var(--line)}
 .row{display:flex;gap:.6rem;align-items:center;justify-content:space-between}
 .row label.sw{display:flex;gap:.5rem;align-items:center;margin:0;color:var(--ink);font-weight:600;font-size:1rem}
-.btn{font:inherit;font-size:.86rem;padding:.35rem .9rem;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block}
-.btn.p{background:var(--tg);border-color:var(--tg);color:#fff}
+.btn{font:inherit;font-size:.86rem;padding:.35rem .9rem;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer;text-decoration:none;display:inline-block;
+  transition:background-color .15s ease,border-color .15s ease,color .15s ease,box-shadow .15s ease,transform .07s ease;-webkit-tap-highlight-color:transparent}
+.btn:hover{background:var(--hover);border-color:var(--tg)}
+.btn:active{transform:translateY(1px) scale(.98);box-shadow:none}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--ring);border-color:var(--tg)}
+.btn.d:hover{border-color:var(--bad);background:var(--hover)}
+.btn:disabled,.btn[disabled]{opacity:.55;cursor:progress;transform:none}
+.btn:disabled:hover{background:transparent;border-color:var(--line)}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}.btn:active{transform:none}}
+.btn.p{background:var(--tg);border-color:var(--tg);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}
+.btn.p:hover{background:var(--tg);filter:brightness(1.12);box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.btn.p:active{filter:brightness(.94)}
+.btn.p:disabled:hover{filter:none;background:var(--tg);border-color:var(--tg)}
 .btn.d{color:var(--bad)}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--tg);outline-offset:2px}
 input[type=checkbox]{width:1.1rem;height:1.1rem}
@@ -49,7 +60,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 15</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 16</p></header>
 
 <div>
   <section>
@@ -301,6 +312,7 @@ $("gnadd").onclick=function(){
 $("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").click()}};
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
+function ghBusy(on){["ghsave","ghload"].forEach(function(i){var b=$(i);if(b)b.disabled=!!on})}
 async function ghSave(){
   var repo=$("ghrepo").value.trim(),br=$("ghbr").value.trim()||"main",tok=$("ghtok").value.trim();
   if(!repo||!tok){ghStatus("اكتب المستودع والرمز أولاً","n");return}
@@ -310,7 +322,7 @@ async function ghSave(){
   }catch(e){}
   var api="https://api.github.com/repos/"+repo;
   var h={"Authorization":"Bearer "+tok,"Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"};
-  ghStatus("جارٍ الحفظ...");
+  ghStatus("جارٍ الحفظ...");ghBusy(true);
   try{
     var sha=null;
     var g=await fetch(api+"/contents/config.json?ref="+encodeURIComponent(br),{headers:h});
@@ -336,7 +348,7 @@ async function ghSave(){
       msg+=d.ok?" وتم تشغيل البوت":" (تعذّر تشغيل البوت تلقائياً: "+d.status+")";
     }
     markSynced();ghStatus(msg+" ✓","y");
-  }catch(e){ghStatus(ghErr(e),"n")}
+  }catch(e){ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
 function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false;$("sth").checked=S.style.auto_hashtags!==false;$("sthf").value=(S.style.hashtags||[]).join("، ");
   var q=S.style.quiet||{},d=S.style.digest||{};
@@ -384,6 +396,7 @@ async function ghFetchConfig(repo,br){
 }
 async function ghLoad(silent){
   var repo=$("ghrepo").value.trim(),br=$("ghbr").value.trim()||"main";
+  ghBusy(true);
   try{
     var got=await ghFetchConfig(repo,br);
     if(got.missing){if(!silent)ghStatus("لا يوجد config.json في المستودع بعد","n");return}
@@ -401,7 +414,7 @@ async function ghLoad(silent){
     drawTracks();drawTopics();update();markSynced();
     try{if(got.sha)localStorage.setItem("gh_sha",got.sha);else localStorage.removeItem("gh_sha")}catch(e){}
     ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
-  }catch(e){if(!silent)ghStatus(ghErr(e),"n")}
+  }catch(e){if(!silent)ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
 $("ghload").onclick=function(){
   if(isDirty()&&!confirm("لديك تعديلات غير محفوظة، وستُستبدل بما هو محفوظ في GitHub. هل تريد المتابعة؟\n(للاحتفاظ بتعديلاتك اضغط إلغاء ثم «حفظ في GitHub الآن»)"))return;
