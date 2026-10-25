@@ -49,7 +49,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 12</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 13</p></header>
 
 <div>
   <section>
@@ -109,6 +109,9 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <p class="note">رابط في كل سطر. تأكد أن الرابط خلاصة RSS تعمل.</p>
     <label for="mx">أقصى عدد أخبار في كل تشغيل</label>
     <input type="number" id="mx" min="1" max="20">
+    <label for="iv">الفاصل الزمني بين كل إرسال (بالدقائق)</label>
+    <input type="number" id="iv" min="0" max="1440" step="5">
+    <p class="note">0 يعني الإرسال في كل تشغيل (كل 15 دقيقة). اكتب 30 أو 60 أو ما تشاء، فينتظر البوت هذه المدة قبل الإرسال التالي. التشغيل اليدوي من Actions وزر الحفظ يتجاوزان الفاصل دائماً.</p>
   </section>
 </div>
 
@@ -164,6 +167,7 @@ try{S=JSON.parse(localStorage.getItem("cfg"))}catch(e){}
 var HAD_LOCAL=!!(S&&S.topics&&S.feeds);
 if(!S||!S.topics||!S.feeds)S=JSON.parse(JSON.stringify(DEF));
 if(!S.track)S.track=[];
+if(S.interval==null)S.interval=0;
 S.feeds=S.feeds.filter(function(u){return u.indexOf("arabic.rt.com")<0});
 var DEFSTYLE={auto_hashtags:true,hashtags:["#أخبار"],max_tags:6,breaking_words:["عاجل","انفجار","اغتيال","زلزال","غارات","قصف"],quiet:{enabled:false,start:"00:00",end:"06:00",allow_breaking:true},digest:{enabled:false,time:"07:00",count:8},tz:3};
 if(!S.style)S.style={mode:"short",signature:"@newsMO1",show_source:true};
@@ -214,7 +218,7 @@ function drawTopics(){
   });
 }
 function cfg(){
-  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,style:S.style};
+  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,interval_minutes:S.interval,style:S.style};
 }
 function update(){
   save();$("json").value=JSON.stringify(cfg(),null,2);runTest();
@@ -376,7 +380,7 @@ async function ghLoad(silent){
     if(got.missing){if(!silent)ghStatus("لا يوجد config.json في المستودع بعد","n");return}
     var c;
     try{c=JSON.parse(got.text)}catch(pe){throw new Error("ملف config.json في GitHub ليس بصيغة JSON صحيحة. احفظ من اللوحة لإصلاحه.")}
-    S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;
+    S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;S.interval=c.interval_minutes||0;
     S.track=[];S.feeds=[];
     if(c.style)S.style=Object.assign({},DEFSTYLE,c.style);syncStyleUI();
     (c.feeds||[]).forEach(function(u){
@@ -384,7 +388,7 @@ async function ghLoad(silent){
       if(m){try{var q=decodeURIComponent(m[1].replace(/\+/g," ")).replace(/\s*when:\S+/,"").trim();if(q&&S.track.indexOf(q)<0)S.track.push(q)}catch(e){}}
       else if(u.indexOf("arabic.rt.com")<0)S.feeds.push(u);
     });
-    $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;
+    $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;$("iv").value=S.interval;
     drawTracks();drawTopics();update();markSynced();
     ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
   }catch(e){if(!silent)ghStatus(ghErr(e),"n")}
@@ -406,6 +410,7 @@ $("addt").onclick=function(){
 $("ex").oninput=function(){S.exclude=parse($("ex").value);update()};
 $("fd").oninput=function(){S.feeds=$("fd").value.split("\n").map(function(s){return s.trim()}).filter(Boolean);update()};
 $("mx").oninput=function(){var n=parseInt($("mx").value,10);S.max=n>0?Math.min(n,20):5;update()};
+$("iv").oninput=function(){var n=parseInt($("iv").value,10);S.interval=n>0?Math.min(n,1440):0;update()};
 $("test").oninput=runTest;
 $("copy").onclick=function(){
   var b=$("copy"),ta=$("json");
@@ -413,7 +418,7 @@ $("copy").onclick=function(){
   try{navigator.clipboard.writeText(ta.value).then(function(){done(true)},function(){ta.select();done(false)})}
   catch(e){ta.select();done(false)}
 };
-$("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;
+$("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;$("iv").value=S.interval;
 syncStyleUI();drawTracks();drawTopics();update();
 if(!HAD_LOCAL||!isDirty())ghLoad(true);
 else ghStatus("لديك تعديلات غير محفوظة في هذا المتصفح. اضغط «حفظ في GitHub الآن» لاعتمادها، أو «تحميل الإعدادات من GitHub» لاستبدالها بما في المستودع.","n");
