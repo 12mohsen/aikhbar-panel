@@ -44,6 +44,8 @@ textarea{min-height:76px;resize:vertical}
 .btn.p:active{filter:brightness(.94)}
 .btn.p:disabled:hover{filter:none;background:var(--tg);border-color:var(--tg)}
 .btn.d{color:var(--bad)}
+.pset{display:inline-flex;gap:.2rem;align-items:center}
+.pset .btn.d{padding:.35rem .5rem}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--tg);outline-offset:2px}
 input[type=checkbox]{width:1.1rem;height:1.1rem}
 .out{direction:ltr;text-align:left;font:13px/1.5 ui-monospace,Consolas,monospace;min-height:260px}
@@ -60,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 17</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 18</p></header>
 
 <div>
   <section>
@@ -72,7 +74,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
   <section>
     <h2>قوائم جاهزة</h2>
     <div class="acts" id="presets"></div>
-    <p class="note">كل زر يضيف أسماء الدول والعواصم إلى موضوع بنفس الاسم (أو ينشئه) ويفعّله. الكلمة التي تبدأ بعلامة = تُطابَق ككلمة كاملة لتفادي الخلط، مثل «مصر» و«مصرف».</p>
+    <p class="note">كل زر يضيف كلماته إلى موضوع بنفس الاسم (أو ينشئه) ويفعّله، ولا يحذف ما كتبته بيدك. الكلمة التي تبدأ بعلامة = تُطابَق ككلمة كاملة لتفادي الخلط، مثل «مصر» و«مصرف».<br>الأزرار التي عليها ★ قوائمك أنت: أنشئ موضوعاً واكتب كلماته ثم اضغط «ثبّت» بجانبه ليظهر هنا. تُحفظ مع إعداداتك فتظهر على كل أجهزتك، و«تحديث التثبيت» يحفظ كلماته الحالية مكان القديمة.</p>
   </section>
   <section>
     <h2>شكل الرسالة في القناة</h2>
@@ -179,6 +181,7 @@ var HAD_LOCAL=!!(S&&S.topics&&S.feeds);
 if(!S||!S.topics||!S.feeds)S=JSON.parse(JSON.stringify(DEF));
 if(!S.track)S.track=[];
 if(S.interval==null)S.interval=0;
+if(!Array.isArray(S.presets))S.presets=[];
 S.feeds=S.feeds.filter(function(u){return u.indexOf("arabic.rt.com")<0});
 var DEFSTYLE={auto_hashtags:true,hashtags:["#أخبار"],max_tags:6,breaking_words:["عاجل","انفجار","اغتيال","زلزال","غارات","قصف"],quiet:{enabled:false,start:"00:00",end:"06:00",allow_breaking:true},digest:{enabled:false,time:"07:00",count:8},tz:3};
 if(!S.style)S.style={mode:"short",signature:"@newsMO1",show_source:true};
@@ -221,7 +224,17 @@ function drawTopics(){
     lb.appendChild(cb);lb.appendChild(document.createTextNode(name));
     var del=el("button","btn d","حذف");del.type="button";
     del.onclick=function(){delete S.topics[name];S.active=S.active.filter(function(x){return x!==name});drawTopics();update()};
-    r.appendChild(lb);r.appendChild(del);d.appendChild(r);
+    var pinned=S.presets.some(function(q){return q.name===name});
+    var pin=el("button","btn",pinned?"تحديث التثبيت":"ثبّت");pin.type="button";
+    pin.title="احفظ هذا الموضوع وكلماته في القوائم الجاهزة";
+    pin.onclick=function(){
+      var kw=(S.topics[name]||[]).join("،");
+      if(!kw){pin.textContent="لا كلمات";setTimeout(function(){pin.textContent="ثبّت"},1500);return}
+      S.presets=S.presets.filter(function(q){return q.name!==name});
+      S.presets.push({name:name,kw:kw});
+      drawPresets();drawTopics();update();
+    };
+    r.appendChild(lb);r.appendChild(pin);r.appendChild(del);d.appendChild(r);
     var ta=document.createElement("textarea");ta.value=S.topics[name].join("، ");
     ta.setAttribute("aria-label","كلمات "+name);
     ta.oninput=function(){S.topics[name]=parse(ta.value);update()};
@@ -229,7 +242,7 @@ function drawTopics(){
   });
 }
 function cfg(){
-  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,interval_minutes:S.interval,style:S.style};
+  return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,interval_minutes:S.interval,presets:S.presets,style:S.style};
 }
 function update(){
   save();$("json").value=JSON.stringify(cfg(),null,2);runTest();
@@ -268,7 +281,28 @@ function applyPreset(p){
   if(S.active.indexOf(key)<0)S.active.push(key);
   drawTopics();update();
 }
-PRESETS.forEach(function(p){var b=el("button","btn",p.name);b.type="button";b.onclick=function(){applyPreset(p);b.textContent=p.name+" ✓"};$("presets").appendChild(b)});
+function presetBtn(p,custom){
+  var label=p.name+(custom?" ★":"");
+  var b=el("button","btn",label);b.type="button";
+  b.onclick=function(){applyPreset(p);b.textContent=p.name+" ✓";
+    setTimeout(function(){b.textContent=label},1600)};
+  if(!custom)return b;
+  var w=el("span","pset");
+  var x=el("button","btn d","✕");x.type="button";
+  x.title="إزالة «"+p.name+"» من القوائم الجاهزة";
+  x.setAttribute("aria-label","إزالة "+p.name+" من القوائم الجاهزة");
+  x.onclick=function(){
+    S.presets=S.presets.filter(function(q){return q.name!==p.name});
+    drawPresets();drawTopics();update();
+  };
+  w.appendChild(b);w.appendChild(x);return w;
+}
+function drawPresets(){
+  var box=$("presets");box.textContent="";
+  PRESETS.forEach(function(p){box.appendChild(presetBtn(p,false))});
+  S.presets.forEach(function(p){box.appendChild(presetBtn(p,true))});
+}
+drawPresets();
 var SRC=[
 ["BBC عربي","https://feeds.bbci.co.uk/arabic/rss.xml"],
 ["BBC اقتصاد","https://feeds.bbci.co.uk/arabic/business/rss.xml"],
@@ -402,7 +436,7 @@ async function ghLoad(silent){
     if(got.missing){if(!silent)ghStatus("لا يوجد config.json في المستودع بعد","n");return}
     var c;
     try{c=JSON.parse(got.text)}catch(pe){throw new Error("ملف config.json في GitHub ليس بصيغة JSON صحيحة. احفظ من اللوحة لإصلاحه.")}
-    S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;S.interval=c.interval_minutes||0;
+    S.topics=c.topics||S.topics;S.active=c.active||[];S.exclude=c.exclude||[];S.max=c.max_per_run||5;S.interval=c.interval_minutes||0;S.presets=Array.isArray(c.presets)?c.presets:[];
     S.track=[];S.feeds=[];
     if(c.style)S.style=Object.assign({},DEFSTYLE,c.style);syncStyleUI();
     (c.feeds||[]).forEach(function(u){
@@ -411,7 +445,7 @@ async function ghLoad(silent){
       else if(u.indexOf("arabic.rt.com")<0)S.feeds.push(u);
     });
     $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;$("iv").value=S.interval;
-    drawTracks();drawTopics();update();markSynced();
+    drawPresets();drawTracks();drawTopics();update();markSynced();
     try{if(got.sha)localStorage.setItem("gh_sha",got.sha);else localStorage.removeItem("gh_sha")}catch(e){}
     ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
   }catch(e){if(!silent)ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
