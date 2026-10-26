@@ -26,7 +26,8 @@ public class MainActivity extends Activity {
         s.setJavaScriptEnabled(true);
         s.setDomStorageEnabled(true);          // لازم لحفظ الرمز والإعدادات
         s.setDatabaseEnabled(true);
-        s.setCacheMode(WebSettings.LOAD_DEFAULT);
+        // لا تستعمل نسخة مخزَّنة: اجلب أحدث لوحة في كل فتح
+        s.setCacheMode(WebSettings.LOAD_NO_CACHE);
         s.setSupportZoom(false);
         web.setWebViewClient(new WebViewClient());
 
@@ -35,8 +36,13 @@ public class MainActivity extends Activity {
         if (state != null) {
             web.restoreState(state);
         } else {
-            web.loadUrl(PANEL_URL);
+            load();
         }
+    }
+
+    /** يضيف طابعاً زمنياً حتى لا يخدمنا أي وسيط بنسخة قديمة. */
+    private void load() {
+        web.loadUrl(PANEL_URL + "?v=" + System.currentTimeMillis());
     }
 
     @Override
@@ -47,10 +53,23 @@ public class MainActivity extends Activity {
 
     @Override
     public boolean onKeyDown(int code, KeyEvent e) {
-        if (code == KeyEvent.KEYCODE_BACK && web.canGoBack()) {
-            web.goBack();
-            return true;
+        if (code == KeyEvent.KEYCODE_BACK) {
+            if (web.canGoBack()) {
+                web.goBack();
+                return true;
+            }
         }
         return super.onKeyDown(code, e);
+    }
+
+    /** ضغطة مطوّلة على زر الرجوع تعيد تحميل أحدث نسخة. */
+    @Override
+    public boolean onKeyLongPress(int code, KeyEvent e) {
+        if (code == KeyEvent.KEYCODE_BACK) {
+            web.clearCache(true);
+            load();
+            return true;
+        }
+        return super.onKeyLongPress(code, e);
     }
 }
