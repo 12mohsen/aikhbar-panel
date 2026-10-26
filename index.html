@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 18</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 19</p></header>
 
 <div>
   <section>
@@ -162,6 +162,22 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
       <li>بعد ذلك استخدم «تعديل الملف الموجود» واستبدل المحتوى.</li>
     </ol>
     <p class="note">التغيير يسري عند التشغيل التالي للبوت. إعداداتك تُحفظ في هذا المتصفح.</p>
+  </section>
+  <section>
+    <h2>اللوحة والتطبيق</h2>
+    <label for="siteurl">رابط اللوحة</label>
+    <input type="text" id="siteurl" dir="ltr" readonly value="https://12mohsen.github.io/aikhbar-panel/">
+    <div class="acts">
+      <button class="btn p" id="cpurl" type="button">نسخ الرابط</button>
+      <a class="btn" id="openurl" target="_blank" rel="noopener" href="https://12mohsen.github.io/aikhbar-panel/">فتح في تبويب جديد</a>
+    </div>
+    <label for="apkurl" style="margin-top:.8rem">رابط تطبيق أندرويد (APK)</label>
+    <input type="text" id="apkurl" dir="ltr" readonly value="https://github.com/12mohsen/aikhbar-panel/releases/download/apk/app-debug.apk">
+    <div class="acts">
+      <button class="btn p" id="cpapk" type="button">نسخ رابط التطبيق</button>
+      <a class="btn" target="_blank" rel="noopener" href="https://github.com/12mohsen/aikhbar-panel/releases/download/apk/app-debug.apk">تنزيل التطبيق</a>
+    </div>
+    <p class="note">افتح رابط اللوحة من جوالك، أو ثبّت التطبيق مرة واحدة. التطبيق يفتح هذه اللوحة نفسها حيّة، فأي تعديل ترفعه يظهر فيه بلا إعادة تثبيت. ورابط التنزيل ثابت لا يتغيّر مع كل بناء جديد.</p>
   </section>
 </div>
 </div>
@@ -475,6 +491,17 @@ $("copy").onclick=function(){
   try{navigator.clipboard.writeText(ta.value).then(function(){done(true)},function(){ta.select();done(false)})}
   catch(e){ta.select();done(false)}
 };
+function copyFrom(btnId,fieldId,label){
+  var b=$(btnId),f=$(fieldId);
+  function done(ok){b.textContent=ok?"تم النسخ ✓":"حدّد النص وانسخه يدوياً";
+    setTimeout(function(){b.textContent=label},2000)}
+  b.onclick=function(){
+    try{navigator.clipboard.writeText(f.value).then(function(){done(true)},function(){f.select();done(false)})}
+    catch(e){f.select();done(false)}
+  };
+}
+copyFrom("cpurl","siteurl","نسخ الرابط");
+copyFrom("cpapk","apkurl","نسخ رابط التطبيق");
 $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;$("iv").value=S.interval;
 syncStyleUI();drawTracks();drawTopics();update();
 if(!HAD_LOCAL||!isDirty())ghLoad(true);
