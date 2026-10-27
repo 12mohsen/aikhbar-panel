@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 20</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 21</p></header>
 
 <div>
   <section>
@@ -369,6 +369,15 @@ $("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
 function ghBusy(on){["ghsave","ghload"].forEach(function(i){var b=$(i);if(b)b.disabled=!!on})}
+var ARM={};
+function armed(key,btn,label,msg){
+  if(ARM[key]){clearTimeout(ARM[key]);delete ARM[key];btn.textContent=label;return true}
+  ghStatus(msg,"n");
+  btn.textContent="اضغط مرة أخرى للتأكيد";
+  ARM[key]=setTimeout(function(){delete ARM[key];btn.textContent=label;
+    ghStatus("أُلغي تلقائياً. لم يتغيّر شيء.","")},8000);
+  return false;
+}
 async function ghSave(){
   var repo=$("ghrepo").value.trim(),br=$("ghbr").value.trim()||"main",tok=$("ghtok").value.trim();
   if(!repo||!tok){ghStatus("اكتب المستودع والرمز أولاً","n");return}
@@ -386,12 +395,11 @@ async function ghSave(){
     else if(g.status===401||g.status===403){throw new Error("الرمز غير صالح أو بلا صلاحية ("+g.status+")")}
     else if(g.status!==404){throw new Error("تعذّر قراءة الملف ("+g.status+")")}
     var known=null;try{known=localStorage.getItem("gh_sha")}catch(e){}
-    if(sha&&known!==sha&&!confirm(
-        "إعدادات المستودع غير التي يعرفها هذا المتصفح \u2014 غالباً حُفظت من جهاز أو متصفح آخر.\n\n"+
-        "الحفظ الآن يكتب فوقها ويمحو ما أُضيف هناك (تتبّعات أو مصادر أو كلمات).\n\n"+
-        "للاحتفاظ بها: اضغط إلغاء، ثم «تحميل الإعدادات من GitHub»، ثم أعد تعديلك.\n"+
-        "للمتابعة والكتابة فوقها: موافق.")){
-      ghStatus("أُلغي الحفظ. اضغط «تحميل الإعدادات من GitHub» أولاً","n");return;
+    if(sha&&known!==sha&&!armed("save",$("ghsave"),"حفظ في GitHub الآن",
+        "إعدادات المستودع غير التي يعرفها هذا المتصفح، غالباً حُفظت من جهاز آخر. "+
+        "الحفظ الآن يكتب فوقها. للاحتفاظ بها اضغط «تحميل الإعدادات من GitHub» أولاً، "+
+        "أو اضغط «حفظ» مرة أخرى للكتابة فوقها.")){
+      ghBusy(false);return;
     }
     var body={message:"Update config from control panel",content:b64(JSON.stringify(cfg(),null,2)+"\n"),branch:br};
     if(sha)body.sha=sha;
@@ -480,7 +488,9 @@ async function ghLoad(silent){
   }catch(e){if(!silent)ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
 $("ghload").onclick=function(){
-  if(isDirty()&&!confirm("لديك تعديلات غير محفوظة، وستُستبدل بما هو محفوظ في GitHub. هل تريد المتابعة؟\n(للاحتفاظ بتعديلاتك اضغط إلغاء ثم «حفظ في GitHub الآن»)"))return;
+  if(isDirty()&&!armed("load",$("ghload"),"تحميل الإعدادات من GitHub",
+      "لديك تعديلات غير محفوظة وستُستبدل بما في المستودع. "+
+      "للاحتفاظ بها اضغط «حفظ في GitHub الآن»، أو اضغط «تحميل» مرة أخرى للاستبدال."))return;
   ghLoad(false);
 };
 $("ghsave").onclick=ghSave;
