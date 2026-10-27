@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 19</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 20</p></header>
 
 <div>
   <section>
@@ -100,6 +100,12 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <h2 style="margin-top:1rem">الملخص اليومي</h2>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sde"> أرسل ملخصاً بأبرز أخبار آخر 24 ساعة</label>
     <div class="two"><div><label for="sdt">وقت الإرسال</label><input type="time" id="sdt"></div><div><label for="sdn">عدد الأخبار فيه</label><input type="number" id="sdn" min="1" max="15"></div></div>
+    <h2 style="margin-top:1rem">فاتحة اليوم وختامه</h2>
+    <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sqoe"> افتتح اليوم بآية</label>
+    <div class="two"><div><label for="sqot">وقت الفاتحة</label><input type="time" id="sqot"></div><div></div></div>
+    <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sqce"> اختم اليوم بآية</label>
+    <div class="two"><div><label for="sqct">وقت الختام</label><input type="time" id="sqct"></div><div></div></div>
+    <p class="note">منشور واحد في كل وقت، من قائمة آيات مختارة تدور يوماً بعد يوم. نص الآية يُجلب عند الإرسال من مصدر قرآني معتمد (alquran.cloud) ولا يُكتب داخل البوت، وإن تعذّر الجلب لا يُنشر شيء وتُعاد المحاولة في التشغيل التالي. المنشور يحمل الآية واسم سورتها ورقمها وتوقيع القناة.</p>
     <label for="stz">فرق التوقيت عن UTC (السعودية 3)</label>
     <input type="number" id="stz" step="0.5" min="-12" max="14">
     <p class="note">الأوقات حسب هذا التوقيت. يعمل البوت كل 15 دقيقة تقريباً، فقد يصل الملخص بعد وقته بدقائق.</p>
@@ -199,7 +205,7 @@ if(!S.track)S.track=[];
 if(S.interval==null)S.interval=0;
 if(!Array.isArray(S.presets))S.presets=[];
 S.feeds=S.feeds.filter(function(u){return u.indexOf("arabic.rt.com")<0});
-var DEFSTYLE={auto_hashtags:true,hashtags:["#أخبار"],max_tags:6,breaking_words:["عاجل","انفجار","اغتيال","زلزال","غارات","قصف"],quiet:{enabled:false,start:"00:00",end:"06:00",allow_breaking:true},digest:{enabled:false,time:"07:00",count:8},tz:3};
+var DEFSTYLE={auto_hashtags:true,hashtags:["#أخبار"],max_tags:6,breaking_words:["عاجل","انفجار","اغتيال","زلزال","غارات","قصف"],quiet:{enabled:false,start:"00:00",end:"06:00",allow_breaking:true},digest:{enabled:false,time:"07:00",count:8},opening:{enabled:false,time:"06:00"},closing:{enabled:false,time:"22:00"},tz:3};
 if(!S.style)S.style={mode:"short",signature:"@newsMO1",show_source:true};
 S.style=Object.assign({},DEFSTYLE,S.style);
 S.feeds=S.feeds.filter(function(u){
@@ -405,6 +411,9 @@ function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.sty
   $("stbw").value=(S.style.breaking_words||[]).join("، ");
   $("sqe").checked=!!q.enabled;$("sqs").value=q.start||"00:00";$("sqf").value=q.end||"06:00";$("sqa").checked=q.allow_breaking!==false;
   $("sde").checked=!!d.enabled;$("sdt").value=d.time||"07:00";$("sdn").value=d.count||8;
+  var o=S.style.opening||{},cl=S.style.closing||{};
+  $("sqoe").checked=!!o.enabled;$("sqot").value=o.time||"06:00";
+  $("sqce").checked=!!cl.enabled;$("sqct").value=cl.time||"22:00";
   $("stz").value=S.style.tz!=null?S.style.tz:3}
 $("stm").onchange=function(){S.style.mode=$("stm").value;update()};
 $("sts").oninput=function(){S.style.signature=$("sts").value.trim();update()};
@@ -419,6 +428,10 @@ $("sqa").onchange=function(){qd("quiet").allow_breaking=$("sqa").checked;update(
 $("sde").onchange=function(){qd("digest").enabled=$("sde").checked;update()};
 $("sdt").onchange=function(){qd("digest").time=$("sdt").value||"07:00";update()};
 $("sdn").oninput=function(){var n=parseInt($("sdn").value,10);qd("digest").count=n>0?Math.min(n,15):8;update()};
+$("sqoe").onchange=function(){qd("opening").enabled=$("sqoe").checked;update()};
+$("sqot").onchange=function(){qd("opening").time=$("sqot").value||"06:00";update()};
+$("sqce").onchange=function(){qd("closing").enabled=$("sqce").checked;update()};
+$("sqct").onchange=function(){qd("closing").time=$("sqct").value||"22:00";update()};
 $("stz").oninput=function(){var n=parseFloat($("stz").value);S.style.tz=isNaN(n)?3:n;update()};
 $("sthf").oninput=function(){S.style.hashtags=parse($("sthf").value).map(function(x){return x.charAt(0)==="#"?x:"#"+x});update()};
 function cfgStr(){return JSON.stringify(cfg())}
