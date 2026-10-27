@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 21</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 22</p></header>
 
 <div>
   <section>
@@ -375,7 +375,7 @@ function armed(key,btn,label,msg){
   ghStatus(msg,"n");
   btn.textContent="اضغط مرة أخرى للتأكيد";
   ARM[key]=setTimeout(function(){delete ARM[key];btn.textContent=label;
-    ghStatus("أُلغي تلقائياً. لم يتغيّر شيء.","")},8000);
+    ghStatus("انتهت مهلة التأكيد ولم يتغيّر شيء. اضغط الزر مرتين متتاليتين خلال نصف دقيقة لتنفيذه.","")},30000);
   return false;
 }
 async function ghSave(){
