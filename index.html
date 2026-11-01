@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 25</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 26</p></header>
 
 <div>
   <section>
@@ -380,7 +380,7 @@ function renderAll(){
   $("mx").value=S.max;$("iv").value=S.interval;
   syncStyleUI();drawPresets();drawTracks();drawTopics();update();
 }
-var UNDO=null;
+var UNDO=null,LASTSYNC=0,SYNCBLOCK=0;
 function showUndo(on){var b=$("ghundo");if(b)b.hidden=!on}
 function ghBusy(on){["ghsave","ghload"].forEach(function(i){var b=$(i);if(b)b.disabled=!!on})}
 var ARM={};
@@ -425,7 +425,9 @@ async function ghSave(){
       var d=await fetch(api+"/actions/workflows/main.yml/dispatches",{method:"POST",headers:h,body:JSON.stringify({ref:br})});
       msg+=d.ok?" وتم تشغيل البوت":" (تعذّر تشغيل البوت تلقائياً: "+d.status+")";
     }
-    markSynced();dirtyHint();ghStatus(msg+" ✓","y");
+    markSynced();dirtyHint();
+    SYNCBLOCK=Date.now()+60000;LASTSYNC=Date.now();
+    ghStatus(msg+" ✓","y");
   }catch(e){ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
 function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false;$("sth").checked=S.style.auto_hashtags!==false;$("sthf").value=(S.style.hashtags||[]).join("، ");
@@ -552,9 +554,11 @@ else ghStatus("لديك تعديلات غير محفوظة في هذا المت�
 
 // مزامنة تلقائية كلما عاد التطبيق أو التبويب إلى الواجهة، فلا تحتاج ضغط «تحميل».
 // لا تجري إن كان لديك تعديل غير محفوظ، حتى لا يُمحى.
-var LASTSYNC=0;
 function autoSync(){
   if(document.hidden)return;
+  // بعد الحفظ مباشرة قد تُرجع واجهة GitHub النسخة السابقة لثوانٍ،
+  // فلا نسمح للمزامنة التلقائية بالكتابة فوق ما حفظناه للتو.
+  if(Date.now()<SYNCBLOCK)return;
   var t=Date.now();
   if(t-LASTSYNC<4000)return;      // لا تكرّر الطلب مع كل تبديل سريع
   if(isDirty())return;            // تعديلاتك أولى بالبقاء
