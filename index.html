@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 23</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 24</p></header>
 
 <div>
   <section>
@@ -151,6 +151,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="ghrem"> تذكّر الرمز على هذا الجهاز</label>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="ghrun" checked> شغّل البوت بعد الحفظ</label>
     <div class="acts"><button class="btn p" id="ghsave" type="button">حفظ في GitHub الآن</button><button class="btn" id="ghload" type="button">تحميل الإعدادات من GitHub</button><button class="btn" id="ghundo" type="button" hidden>تراجع عن التحميل</button></div>
+    <div class="res" id="ghdirty" aria-live="polite"></div>
     <div class="res" id="ghres" aria-live="polite"></div>
     <p class="note">الرمز يبقى في متصفحك فقط ولا يُرسل إلا إلى GitHub. أنشئه من GitHub: Settings ← Developer settings ← Fine-grained tokens. اختر مستودعاً واحداً (aikhbar) وصلاحية Contents: Read and write، وأضف Actions: Read and write إن أردت تشغيل البوت تلقائياً.</p>
   </section>
@@ -267,7 +268,7 @@ function cfg(){
   return {topics:S.topics,active:S.active.filter(function(t){return S.topics[t]}),exclude:S.exclude,feeds:S.feeds.concat(S.track.map(trackUrl)),max_per_run:S.max,interval_minutes:S.interval,presets:S.presets,style:S.style};
 }
 function update(){
-  save();$("json").value=JSON.stringify(cfg(),null,2);runTest();
+  save();$("json").value=JSON.stringify(cfg(),null,2);runTest();dirtyHint();
 }
 function runTest(){
   var v=$("test").value.trim(),r=$("res");r.className="res";
@@ -368,6 +369,12 @@ $("gnadd").onclick=function(){
 $("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").click()}};
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
+function dirtyHint(){
+  var d=$("ghdirty");if(!d)return;
+  if(isDirty()){d.className="res n";
+    d.textContent="⚠ تعديلاتك لم تُحفظ بعد — اضغط «حفظ في GitHub الآن» وإلا لن يراها البوت ولا أجهزتك الأخرى";}
+  else{d.className="res";d.textContent="محفوظ ومتزامن مع GitHub ✓";}
+}
 function renderAll(){
   $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");
   $("mx").value=S.max;$("iv").value=S.interval;
@@ -418,7 +425,7 @@ async function ghSave(){
       var d=await fetch(api+"/actions/workflows/main.yml/dispatches",{method:"POST",headers:h,body:JSON.stringify({ref:br})});
       msg+=d.ok?" وتم تشغيل البوت":" (تعذّر تشغيل البوت تلقائياً: "+d.status+")";
     }
-    markSynced();ghStatus(msg+" ✓","y");
+    markSynced();dirtyHint();ghStatus(msg+" ✓","y");
   }catch(e){ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
 function syncStyleUI(){$("stm").value=S.style.mode||"short";$("sts").value=S.style.signature||"";$("stso").checked=S.style.show_source!==false;$("sth").checked=S.style.auto_hashtags!==false;$("sthf").value=(S.style.hashtags||[]).join("، ");
@@ -489,7 +496,7 @@ async function ghLoad(silent){
       if(m){try{var q=decodeURIComponent(m[1].replace(/\+/g," ")).replace(/\s*when:\S+/,"").trim();if(q&&S.track.indexOf(q)<0)S.track.push(q)}catch(e){}}
       else if(u.indexOf("arabic.rt.com")<0)S.feeds.push(u);
     });
-    renderAll();markSynced();
+    renderAll();markSynced();dirtyHint();
     try{if(got.sha)localStorage.setItem("gh_sha",got.sha);else localStorage.removeItem("gh_sha")}catch(e){}
     if(!silent){UNDO=before;showUndo(true);
       ghStatus("تم تحميل آخر إعدادات من GitHub ✓ — اضغط «تراجع» لاستعادة ما كان قبل التحميل","y");}
