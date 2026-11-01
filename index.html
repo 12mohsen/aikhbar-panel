@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 26</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 27</p></header>
 
 <div>
   <section>
@@ -98,8 +98,9 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <div class="two"><div><label for="sqs">من</label><input type="time" id="sqs"></div><div><label for="sqf">إلى</label><input type="time" id="sqf"></div></div>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sqa"> السماح للأخبار العاجلة أثناء الهدوء</label>
     <h2 style="margin-top:1rem">الملخص اليومي</h2>
+    <p class="note">منشور واحد يومياً يجمع عناوين آخر 24 ساعة. «عدد أخبار الملخص» يخص هذا المنشور وحده، ولا علاقة له بـ«أقصى عدد أخبار في كل دفعة إرسال» في قسم المصادر.</p>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sde"> أرسل ملخصاً بأبرز أخبار آخر 24 ساعة</label>
-    <div class="two"><div><label for="sdt">وقت الإرسال</label><input type="time" id="sdt"></div><div><label for="sdn">عدد الأخبار فيه</label><input type="number" id="sdn" min="1" max="15"></div></div>
+    <div class="two"><div><label for="sdt">وقت الإرسال</label><input type="time" id="sdt"></div><div><label for="sdn">عدد أخبار الملخص</label><input type="number" id="sdn" min="1" max="15"></div></div>
     <h2 style="margin-top:1rem">فاتحة اليوم وختامه</h2>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="sqoe"> افتتح اليوم بآية</label>
     <div class="two"><div><label for="sqot">وقت الفاتحة</label><input type="time" id="sqot"></div><div></div></div>
@@ -126,7 +127,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <label for="fd">روابط المصادر (بدون التتبّع)</label>
     <textarea id="fd" dir="ltr"></textarea>
     <p class="note">رابط في كل سطر. تأكد أن الرابط خلاصة RSS تعمل.</p>
-    <label for="mx">أقصى عدد أخبار في كل تشغيل</label>
+    <label for="mx">أقصى عدد أخبار في كل دفعة إرسال</label>
     <input type="number" id="mx" min="1" max="20">
     <label for="iv">الفاصل الزمني بين كل إرسال (بالدقائق)</label>
     <input type="number" id="iv" min="0" max="1440" step="5">
@@ -369,11 +370,14 @@ $("gnadd").onclick=function(){
 $("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").click()}};
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
+var SYNCAT=0;
+function hhmm(t){var x=new Date(t);
+  return ("0"+x.getHours()).slice(-2)+":"+("0"+x.getMinutes()).slice(-2)}
 function dirtyHint(){
   var d=$("ghdirty");if(!d)return;
   if(isDirty()){d.className="res n";
     d.textContent="⚠ تعديلاتك لم تُحفظ بعد — اضغط «حفظ في GitHub الآن» وإلا لن يراها البوت ولا أجهزتك الأخرى";}
-  else{d.className="res";d.textContent="محفوظ ومتزامن مع GitHub ✓";}
+  else{d.className="res";d.textContent="محفوظ ومتزامن مع GitHub ✓"+(SYNCAT?" — آخر مزامنة "+hhmm(SYNCAT):"");}
 }
 function renderAll(){
   $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");
@@ -459,7 +463,7 @@ $("sqct").onchange=function(){qd("closing").time=$("sqct").value||"22:00";update
 $("stz").oninput=function(){var n=parseFloat($("stz").value);S.style.tz=isNaN(n)?3:n;update()};
 $("sthf").oninput=function(){S.style.hashtags=parse($("sthf").value).map(function(x){return x.charAt(0)==="#"?x:"#"+x});update()};
 function cfgStr(){return JSON.stringify(cfg())}
-function markSynced(){try{localStorage.setItem("synced",cfgStr())}catch(e){}}
+function markSynced(){SYNCAT=Date.now();try{localStorage.setItem("synced",cfgStr())}catch(e){}}
 function isDirty(){try{var sy=localStorage.getItem("synced");return sy===null||sy!==cfgStr()}catch(e){return false}}
 function ghErr(e){
   if(e&&e.name==="TypeError")return "تعذّر الاتصال بـ GitHub. تأكد من الإنترنت، وأوقف VPN أو مانع الإعلانات أو وضع توفير البيانات، ثم أعد المحاولة.";
