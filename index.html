@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 22</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 23</p></header>
 
 <div>
   <section>
@@ -150,7 +150,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
     <input type="password" id="ghtok" dir="ltr" autocomplete="off" placeholder="github_pat_...">
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="ghrem"> تذكّر الرمز على هذا الجهاز</label>
     <label class="sw" style="display:flex;gap:.5rem;align-items:center;color:var(--ink)"><input type="checkbox" id="ghrun" checked> شغّل البوت بعد الحفظ</label>
-    <div class="acts"><button class="btn p" id="ghsave" type="button">حفظ في GitHub الآن</button><button class="btn" id="ghload" type="button">تحميل الإعدادات من GitHub</button></div>
+    <div class="acts"><button class="btn p" id="ghsave" type="button">حفظ في GitHub الآن</button><button class="btn" id="ghload" type="button">تحميل الإعدادات من GitHub</button><button class="btn" id="ghundo" type="button" hidden>تراجع عن التحميل</button></div>
     <div class="res" id="ghres" aria-live="polite"></div>
     <p class="note">الرمز يبقى في متصفحك فقط ولا يُرسل إلا إلى GitHub. أنشئه من GitHub: Settings ← Developer settings ← Fine-grained tokens. اختر مستودعاً واحداً (aikhbar) وصلاحية Contents: Read and write، وأضف Actions: Read and write إن أردت تشغيل البوت تلقائياً.</p>
   </section>
@@ -368,6 +368,13 @@ $("gnadd").onclick=function(){
 $("gn").onkeydown=function(e){if(e.key==="Enter"){e.preventDefault();$("gnadd").click()}};
 function b64(t){var u=new TextEncoder().encode(t),r="";u.forEach(function(x){r+=String.fromCharCode(x)});return btoa(r)}
 function ghStatus(msg,cls){var r=$("ghres");r.className="res"+(cls?" "+cls:"");r.textContent=msg}
+function renderAll(){
+  $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");
+  $("mx").value=S.max;$("iv").value=S.interval;
+  syncStyleUI();drawPresets();drawTracks();drawTopics();update();
+}
+var UNDO=null;
+function showUndo(on){var b=$("ghundo");if(b)b.hidden=!on}
 function ghBusy(on){["ghsave","ghload"].forEach(function(i){var b=$(i);if(b)b.disabled=!!on})}
 var ARM={};
 function armed(key,btn,label,msg){
@@ -451,7 +458,7 @@ function ghErr(e){
 }
 async function ghFetchConfig(repo,br){
   try{
-    var r=await fetch("https://api.github.com/repos/"+repo+"/contents/config.json?ref="+encodeURIComponent(br),{headers:{"Accept":"application/vnd.github+json"}});
+    var r=await fetch("https://api.github.com/repos/"+repo+"/contents/config.json?ref="+encodeURIComponent(br)+"&_="+Date.now(),{headers:{"Accept":"application/vnd.github+json"},cache:"no-store"});
     if(r.status===404)return {missing:true};
     if(!r.ok)throw new Error("تعذّر التحميل ("+r.status+")");
     var j=await r.json();
@@ -468,6 +475,7 @@ async function ghFetchConfig(repo,br){
 async function ghLoad(silent){
   var repo=$("ghrepo").value.trim(),br=$("ghbr").value.trim()||"main";
   ghBusy(true);
+  var before=JSON.stringify(S);
   try{
     var got=await ghFetchConfig(repo,br);
     if(got.missing){if(!silent)ghStatus("لا يوجد config.json في المستودع بعد","n");return}
@@ -481,17 +489,22 @@ async function ghLoad(silent){
       if(m){try{var q=decodeURIComponent(m[1].replace(/\+/g," ")).replace(/\s*when:\S+/,"").trim();if(q&&S.track.indexOf(q)<0)S.track.push(q)}catch(e){}}
       else if(u.indexOf("arabic.rt.com")<0)S.feeds.push(u);
     });
-    $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").value=S.max;$("iv").value=S.interval;
-    drawPresets();drawTracks();drawTopics();update();markSynced();
+    renderAll();markSynced();
     try{if(got.sha)localStorage.setItem("gh_sha",got.sha);else localStorage.removeItem("gh_sha")}catch(e){}
-    ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
+    if(!silent){UNDO=before;showUndo(true);
+      ghStatus("تم تحميل آخر إعدادات من GitHub ✓ — اضغط «تراجع» لاستعادة ما كان قبل التحميل","y");}
+    else ghStatus("تم تحميل آخر إعدادات من GitHub ✓","y");
   }catch(e){if(!silent)ghStatus(ghErr(e),"n")}finally{ghBusy(false)}
 }
-$("ghload").onclick=function(){
-  if(isDirty()&&!armed("load",$("ghload"),"تحميل الإعدادات من GitHub",
-      "لديك تعديلات غير محفوظة وستُستبدل بما في المستودع. "+
-      "للاحتفاظ بها اضغط «حفظ في GitHub الآن»، أو اضغط «تحميل» مرة أخرى للاستبدال."))return;
-  ghLoad(false);
+$("ghload").onclick=function(){showUndo(false);ghLoad(false);
+};
+$("ghundo").onclick=function(){
+  if(!UNDO)return;
+  var o=JSON.parse(UNDO);UNDO=null;showUndo(false);
+  Object.keys(S).forEach(function(k){delete S[k]});
+  Object.keys(o).forEach(function(k){S[k]=o[k]});
+  renderAll();
+  ghStatus("رجعت إعداداتك كما كانت. لم يتغيّر شيء في المستودع.","");
 };
 $("ghsave").onclick=ghSave;
 try{
