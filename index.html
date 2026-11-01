@@ -62,7 +62,7 @@ input[type=time]{width:100%;font:inherit;font-size:.92rem;padding:.45rem .6rem;b
 </head>
 <body>
 <div class="wrap">
-<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 24</p></header>
+<header><h1>لوحة تحكم أخبار القناة</h1><p>اختر المواضيع والكلمات والمصادر ثم اضغط «حفظ في GitHub» والبوت يلتزم بها · الإصدار 25</p></header>
 
 <div>
   <section>
@@ -549,6 +549,20 @@ $("ex").value=S.exclude.join("، ");$("fd").value=S.feeds.join("\n");$("mx").val
 syncStyleUI();drawTracks();drawTopics();update();
 if(!HAD_LOCAL||!isDirty())ghLoad(true);
 else ghStatus("لديك تعديلات غير محفوظة في هذا المتصفح. اضغط «حفظ في GitHub الآن» لاعتمادها، أو «تحميل الإعدادات من GitHub» لاستبدالها بما في المستودع.","n");
+
+// مزامنة تلقائية كلما عاد التطبيق أو التبويب إلى الواجهة، فلا تحتاج ضغط «تحميل».
+// لا تجري إن كان لديك تعديل غير محفوظ، حتى لا يُمحى.
+var LASTSYNC=0;
+function autoSync(){
+  if(document.hidden)return;
+  var t=Date.now();
+  if(t-LASTSYNC<4000)return;      // لا تكرّر الطلب مع كل تبديل سريع
+  if(isDirty())return;            // تعديلاتك أولى بالبقاء
+  LASTSYNC=t;ghLoad(true);
+}
+document.addEventListener("visibilitychange",autoSync);
+window.addEventListener("focus",autoSync);
+window.addEventListener("pageshow",autoSync);
 </script>
 </body>
 </html>
